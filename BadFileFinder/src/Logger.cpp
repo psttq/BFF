@@ -20,8 +20,9 @@ namespace BFF{
     }
 
     Logger::Logger(){
+        file.open("log.txt", std::ios::trunc);
+        file.close();
         file.open("log.txt", std::ios::app);
-        std::cerr << "Error opening file: " << strerror(errno) << std::endl;
     }
 
     Logger::~Logger(){
