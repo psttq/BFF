@@ -10,9 +10,10 @@
 
 namespace BFF {
 MD5Checker::MD5Checker(const fs::path &path_to_base)
-    : IChecker("MD5Checker (" + std::string(path_to_base) + ")"),
+    : IChecker("MD5Checker"),
       p_path_to_base(path_to_base) {
   readBase();
+  p_name = std::string("MD5Checker (") + path_to_base.string() + std::string(")");
 }
 
 std::unique_ptr<MD5Checker> MD5Checker::create(const fs::path &path_to_base) {
@@ -34,7 +35,7 @@ void MD5Checker::readBase() {
   std::ifstream file(p_path_to_base);
   if (!file.is_open()) {
     throw std::runtime_error("Cannot open file: " +
-                             std::string(p_path_to_base));
+                             (p_path_to_base.string()));
   }
 
   std::string line;
@@ -78,21 +79,29 @@ IChecker::CheckResult MD5Checker::check(const fs::path &file_path) {
   result.file_path = file_path;
   result.checker_name = p_name;
   result.isOk = true;
+  result.isChecked = true;
+  result.vulnerability = "None";
+  
+  std::string file_hash = "None";
 
   try {
-    std::string file_hash = getFileMD5Hash(file_path);
+    file_hash = getFileMD5Hash(file_path);
 
     auto hash_info = MD5_base.find(file_hash);
 
     if (hash_info != MD5_base.end()) {
       result.isOk = false;
-      result.valnerability = hash_info->second;
+      result.vulnerability = hash_info->second;
     }
+
   } catch (const std::exception &e) {
     result.isOk = false;
-    result.valnerability = std::string("Error checking MD5: ") + e.what();
+    result.isChecked = false;
+    result.vulnerability = std::string("Error checking MD5: ") + e.what();
   }
 
+  p_logger->log("Checked file '" + file_path.string() +"'. Hash: " + file_hash + ". Checked: " + (result.isChecked ? "+" : "-") + ", Ok: " + (result.isOk ? "+" : "-") + ", Vulnerability: " + result.vulnerability);
+  
   return result;
 }
 

@@ -5,9 +5,14 @@
 #include <vector>
 
 namespace BFF {
-  Secretary::Secretary(){}
+  Secretary::Secretary(){
+    logger = std::make_shared<Logger>();
+    logger->log("Started Secretary");
+  }
 
   void Secretary::addChecker(std::unique_ptr<IChecker> checker){
+    logger->log("Added checker: " + checker->getName());
+    checker->setLogger(logger);
     p_checkers.push_back(std::move(checker));
   }
 
@@ -21,23 +26,25 @@ namespace BFF {
               }
           }
       } catch (const fs::filesystem_error& e) {
-          std::cerr << "Error accessing directory: " << e.what() << std::endl; //TODO: Change to logger
+          logger->error("Failed to read folder: " + std::string(e.what()));
       }
 
       return files;
   }
 
-  void Secretary::checkFolder(const fs::path &folder_path){
+  Secretary::SecretaryResult Secretary::checkFolder(const fs::path &folder_path){
+    logger->log("Starting checking folder '" + folder_path.string() + "'");
     auto files = getAllFilesRecursive(folder_path);
     std::vector<IChecker::CheckResult> total_results;
     for(auto &checker : p_checkers){
       std::vector<IChecker::CheckResult> checker_results;
-      //DO MULTITHREADING
       for(auto file : files){
         auto result = checker->check(file);
         checker_results.push_back(result);
       }
-      total_results.(checker_results.begin(), checker_results.end());
+      total_results.insert(total_results.end(), checker_results.begin(), checker_results.end());
     }
+    logger->log("Checking finished");
+    return total_results;
   }
 }
